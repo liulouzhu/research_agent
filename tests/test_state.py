@@ -34,3 +34,23 @@ def test_state_messages_add_reducer():
     }
     assert len(updated["messages"]) == 2
     assert updated["messages"][1].content == "world"
+
+
+from memory.short_term import build_message_history
+
+
+def test_build_message_history_empty():
+    result = build_message_history([], "system prompt")
+    assert len(result) == 1
+    assert result[0]["role"] == "system"
+
+
+def test_build_message_history_with_messages():
+    from langchain_core.messages import HumanMessage, AIMessage
+
+    msgs = [HumanMessage(content="hi"), AIMessage(content="hello")]
+    result = build_message_history(msgs, "you are a helper")
+    assert len(result) == 3
+    assert result[0]["role"] == "system"
+    assert result[1]["role"] == "user"
+    assert result[2]["role"] == "assistant"
