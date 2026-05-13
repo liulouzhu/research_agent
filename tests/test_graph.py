@@ -45,3 +45,60 @@ def test_graph_routes_qa_flow(mock_llm_cls, mock_chroma_cls, mock_emb):
     })
     assert "注意力" in result["output"]
     assert call_count[0] == 2
+
+
+@patch("graph.ChatOpenAI")
+def test_graph_routes_writing_flow(mock_llm_cls):
+    from langchain_core.messages import AIMessage
+
+    mock_llm = MagicMock()
+    call_count = [0]
+
+    def invoke_side_effect(msgs):
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return AIMessage(content="writing")
+        return AIMessage(content="Transformer是一种基于自注意力机制的模型架构...")
+
+    mock_llm.invoke.side_effect = invoke_side_effect
+    mock_llm_cls.return_value = mock_llm
+
+    graph = build_graph()
+    result = graph.invoke({
+        "query": "帮我写一段关于Transformer的介绍",
+        "intent": "",
+        "context": [],
+        "messages": [],
+        "output": "",
+        "user_preferences": {},
+    })
+    assert "Transformer" in result["output"]
+
+
+@patch("graph.ChatOpenAI")
+def test_graph_routes_polish_flow(mock_llm_cls):
+    from langchain_core.messages import AIMessage
+
+    mock_llm = MagicMock()
+    call_count = [0]
+
+    def invoke_side_effect(msgs):
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return AIMessage(content="polish")
+        return AIMessage(content="润色后的文本内容")
+
+    mock_llm.invoke.side_effect = invoke_side_effect
+    mock_llm_cls.return_value = mock_llm
+
+    graph = build_graph()
+    result = graph.invoke({
+        "query": "润色这段文字：the model is good",
+        "intent": "",
+        "context": [],
+        "messages": [],
+        "output": "",
+        "user_preferences": {},
+    })
+    assert result["output"] is not None
+    assert len(result["output"]) > 0
