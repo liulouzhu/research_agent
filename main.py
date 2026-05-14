@@ -1,5 +1,9 @@
 import sys
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from graph import build_graph
 from memory.long_term import LongTermMemory
 from rag.ingest import ingest_document

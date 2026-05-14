@@ -1,3 +1,5 @@
+import os
+
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, StateGraph
 
@@ -32,7 +34,9 @@ def _make_polish_node(llm):
     return node
 
 
-def build_graph(chroma_dir: str = "./chroma_db", model: str = "gpt-4o-mini"):
+def build_graph(chroma_dir: str = "./chroma_db", model: str = None):
+    if model is None:
+        model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
     llm = ChatOpenAI(model=model, temperature=0)
 
     graph = StateGraph(State)
