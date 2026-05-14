@@ -1,9 +1,10 @@
 import os
+import re
 
 import fitz
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 
 _default_embeddings = None
 
@@ -23,38 +24,100 @@ def get_embeddings() -> OpenAIEmbeddings:
     return _default_embeddings
 
 
-def _extract_text(pdf_path: str) -> list[dict]:
-    doc = fitz.open(pdf_path)
-    pages = []
-    for page_num, page in enumerate(doc):
-        text = page.get_text()
-        if text.strip():
-            pages.append(
-                {"text": text, "metadata": {"source": os.path.basename(pdf_path), "page": page_num}}
-            )
-    doc.close()
-    return pages
+_SECTION_PATTERN = re.compile(
+    r'^(\d+(?:\.\d+)*)[.\s]+(.+)$',
+    re.MULTILINE | re.IGNORECASE,
+)
+
+_PLAIN_SECTION_KEYWORDS = {
+    "abstract", "introduction", "conclusion", "references",
+    "acknowledgements", "acknowledgment", "background", "related work",
+    "method", "methods", "methodology", "results", "discussion",
+    "experiment", "experiments", "evaluation", "appendix", "supplementary",
+    "summary", "future work",
+}
+
+
+def _text_to_markdown(text: str) -> str:
+    lines = text.split("\n")
+    md_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            md_lines.append("")
+            continue
+        first_word = stripped.split()[0].rstrip(".").rstrip(",").rstrip(":").lower() if stripped else ""
+        if first_word in _PLAIN_SECTION_KEYWORDS:
+            md_lines.append(f"# {stripped}")
+            continue
+        m = _SECTION_PATTERN.match(stripped)
+        if m:
+            number = m.group(1)
+            num_parts = number.split(".")
+            depth = len(num_parts)
+            depth = min(depth + 1, 3)
+            md_lines.append(f"{'#' * depth} {stripped}")
+        else:
+            md_lines.append(stripped)
+    return "\n".join(md_lines)
+
+
+_HEADERS_TO_SPLIT_ON = [
+    ("#", "Header 1"),
+    ("##", "Header 2"),
+    ("###", "Header 3"),
+]
 
 
 def ingest_document(pdf_path: str, chroma_dir: str = "./chroma_db") -> int:
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
-    pages = _extract_text(pdf_path)
+    pages = _extract_pages(pdf_path)
     if not pages:
         return 0
 
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=512,
-        chunk_overlap=64,
+    md_splitter = MarkdownHeaderTextSplitter(
+        headers_to_split_on=_HEADERS_TO_SPLIT_ON,
+        return_each_line=False,
+        strip_headers=False,
     )
+    char_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1024,
+        chunk_overlap=200,
+    )
+
     all_texts = []
     all_metadatas = []
+
     for page in pages:
-        chunks = splitter.split_text(page["text"])
-        for chunk in chunks:
-            all_texts.append(chunk)
-            all_metadatas.append(page["metadata"])
+        md_text = _text_to_markdown(page["text"])
+        try:
+            md_chunks = md_splitter.split_text(md_text)
+        except Exception:
+            md_chunks = []
+
+        if not md_chunks:
+            chunks = char_splitter.split_text(page["text"])
+            for chunk in chunks:
+                all_texts.append(chunk)
+                all_metadatas.append(page["metadata"])
+        else:
+            for md_chunk in md_chunks:
+                content = md_chunk.page_content
+                header_meta = md_chunk.metadata
+                combined_meta = {**page["metadata"], **header_meta}
+                if len(content) > 1024:
+                    sub_chunks = char_splitter.split_text(content)
+                    for sub in sub_chunks:
+                        all_texts.append(sub)
+                        all_metadatas.append(combined_meta)
+                else:
+                    all_texts.append(content)
+                    all_metadatas.append(combined_meta)
+
+    if not all_texts:
+        return 0
 
     embeddings = get_embeddings()
     Chroma.from_texts(

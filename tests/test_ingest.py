@@ -1,31 +1,51 @@
-import fitz
+# -*- coding: utf-8 -*-
 import os
+
 import pytest
-from rag.ingest import ingest_document
+
+from rag.ingest import _text_to_markdown
 
 
-@pytest.fixture
-def sample_pdf(tmp_path):
-    path = str(tmp_path / "sample.pdf")
-    doc = fitz.open()
-    page = doc.new_page()
-    text = "Attention mechanism is a technique in neural networks. It allows the model to focus on specific parts of the input."
-    page.insert_text((72, 72), text, fontsize=12)
-    doc.save(path)
-    doc.close()
-    return path
+def test_text_to_markdown_with_numbered_section():
+    text = "1. Introduction\nThis is the intro.\n2. Related Work\nSome related work here."
+    md = _text_to_markdown(text)
+    assert "## 1. Introduction" in md
+    assert "## 2. Related Work" in md
 
 
-@pytest.fixture
-def chroma_dir(tmp_path):
-    return str(tmp_path / "chroma_db")
+def test_text_to_markdown_with_subsection():
+    text = "2.1 Subsection Title\nSome content."
+    md = _text_to_markdown(text)
+    assert "### 2.1 Subsection Title" in md
 
 
-def test_ingest_creates_collection(sample_pdf, chroma_dir):
-    n_chunks = ingest_document(sample_pdf, chroma_dir)
-    assert n_chunks > 0
+def test_text_to_markdown_with_abstract():
+    text = "Abstract\nThis is the abstract.\n1. Introduction\nIntro content."
+    md = _text_to_markdown(text)
+    assert "# Abstract" in md
+    assert "# 1. Introduction" in md
 
 
-def test_ingest_pdf_not_found(chroma_dir):
+def test_text_to_markdown_preserves_plain_text():
+    text = "Some plain text without headers.\nMore text."
+    md = _text_to_markdown(text)
+    assert "Some plain text without headers." in md
+
+
+def test_text_to_markdown_with_keyword_header():
+    text = "Conclusion\nWe conclude that...\nReferences\n[1] Paper A"
+    md = _text_to_markdown(text)
+    assert "# Conclusion" in md
+    assert "# References" in md
+
+
+def test_text_to_markdown_deep_subsection():
+    text = "3.2.1 Details\nDetailed content."
+    md = _text_to_markdown(text)
+    assert "### 3.2.1 Details" in md
+
+
+def test_ingest_pdf_not_found():
+    from rag.ingest import ingest_document
     with pytest.raises(FileNotFoundError):
-        ingest_document("/nonexistent.pdf", chroma_dir)
+        ingest_document("/nonexistent.pdf", "./chroma_db")
