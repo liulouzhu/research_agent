@@ -4,3 +4,4 @@ __pycache__/
 chroma_db/
 user_prefs.json
 .venv/
+docs/
