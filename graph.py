@@ -61,10 +61,17 @@ def build_graph(chroma_dir: str = "./chroma_db", model: str = None, reviewer_mod
     llm = ChatOpenAI(model=model, temperature=0)
 
     reviewer_llm = None
-    if reviewer_model:
-        reviewer_llm = ChatOpenAI(model=reviewer_model, temperature=0)
-    elif os.environ.get("REVIEWER_MODEL"):
-        reviewer_llm = ChatOpenAI(model=os.environ["REVIEWER_MODEL"], temperature=0)
+    env_reviewer_model = os.environ.get("REVIEWER_MODEL")
+    if reviewer_model or env_reviewer_model:
+        rm = reviewer_model or env_reviewer_model
+        reviewer_kwargs = {"model": rm, "temperature": 0}
+        reviewer_api_key = os.environ.get("REVIEWER_API_KEY")
+        reviewer_base_url = os.environ.get("REVIEWER_BASE_URL")
+        if reviewer_api_key:
+            reviewer_kwargs["api_key"] = reviewer_api_key
+        if reviewer_base_url:
+            reviewer_kwargs["base_url"] = reviewer_base_url
+        reviewer_llm = ChatOpenAI(**reviewer_kwargs)
 
     graph = StateGraph(State)
 

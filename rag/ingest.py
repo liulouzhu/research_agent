@@ -12,7 +12,14 @@ def get_embeddings() -> OpenAIEmbeddings:
     global _default_embeddings
     if _default_embeddings is None:
         model = os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small")
-        _default_embeddings = OpenAIEmbeddings(model=model)
+        emb_kwargs = {"model": model}
+        emb_api_key = os.environ.get("EMBEDDING_API_KEY")
+        emb_base_url = os.environ.get("EMBEDDING_BASE_URL")
+        if emb_api_key:
+            emb_kwargs["api_key"] = emb_api_key
+        if emb_base_url:
+            emb_kwargs["base_url"] = emb_base_url
+        _default_embeddings = OpenAIEmbeddings(**emb_kwargs)
     return _default_embeddings
 
 
