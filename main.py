@@ -7,6 +7,7 @@ load_dotenv()
 from graph import build_graph
 from memory.long_term import LongTermMemory
 from rag.ingest import ingest_document
+from agents.arxiv import download_paper
 
 _CHROMA_DIR = "./chroma_db"
 _PREFS_PATH = "./user_prefs.json"
@@ -20,6 +21,19 @@ def _handle_upload(path: str) -> None:
         print(f"文件不存在：{path}")
     except Exception as e:
         print(f"摄入失败：{e}")
+
+
+def _handle_download(paper_id: str) -> None:
+    try:
+        print(f"正在下载论文 {paper_id}...")
+        filepath = download_paper(paper_id)
+        print(f"论文已下载到：{filepath}")
+        n = ingest_document(filepath, _CHROMA_DIR)
+        print(f"论文已入库，生成 {n} 个文本块。")
+    except StopIteration:
+        print(f"未找到论文：{paper_id}")
+    except Exception as e:
+        print(f"下载失败：{e}")
 
 
 def _handle_set(memory: LongTermMemory, key: str, value: str) -> None:
@@ -38,7 +52,7 @@ def main():
     graph = build_graph(chroma_dir=_CHROMA_DIR)
 
     print("科研助手已启动。输入问题开始对话，输入 quit 退出。")
-    print("命令：upload <path> | set <key> <value> | prefs | quit")
+    print("命令：upload <path> | download <arxiv_id> | set <key> <value> | prefs | quit")
 
     messages = []
     prefs = memory.load()
@@ -62,6 +76,10 @@ def main():
 
         if cmd == "upload" and len(parts) > 1:
             _handle_upload(parts[1])
+            continue
+
+        if cmd == "download" and len(parts) > 1:
+            _handle_download(parts[1])
             continue
 
         if cmd == "set" and len(parts) > 1:

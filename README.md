@@ -12,19 +12,21 @@ CLI 输入
   ├── qa_agent          → RAG 检索 + 问答
   ├── writing_agent     → 论文写作
   ├── polish_agent      → 润色修改
+  ├── arxiv_agent       → 搜索/下载 arXiv 论文
   └── general_agent     → 通用问答
   ↓
 输出到 CLI
 ```
 
-单一 LangGraph StateGraph，扁平结构，4 个 agent 节点通过共享 State 传递数据。
+单一 LangGraph StateGraph，扁平结构，5 个 agent 节点通过共享 State 传递数据。
 
 ## 功能
 
 - **QA 问答**：上传 PDF 文档后，基于内容检索回答问题，标注引用来源
 - **论文写作**：根据用户要求生成论文段落、大纲、草稿
 - **润色修改**：对已有文本进行学术润色，支持偏好调整
-- **通用问答**：处理不属于以上三类的对话、概念解释、方法建议等
+- **ArXiv 论文**：搜索 arXiv 论文、下载 PDF 并自动入库到 RAG 知识库
+- **通用问答**：处理不属于以上四类的对话、概念解释、方法建议等
 - **意图分类**：自动识别用户意图，路由到对应 agent
 - **多级记忆**：短期对话上下文 + 长期用户偏好持久化
 
@@ -59,6 +61,7 @@ python main.py
 | 命令 | 说明 |
 |------|------|
 | `upload <path>` | 上传 PDF 文档到知识库 |
+| `download <arxiv_id>` | 从 arXiv 下载论文并自动入库 |
 | `set <key> <value>` | 设置用户偏好（如 `set language english`） |
 | `prefs` | 查看当前偏好设置 |
 | 直接输入文本 | 进入意图分类 → agent 流程 |
@@ -82,7 +85,8 @@ research_agent/
 │   ├── qa.py            # qa_agent
 │   ├── writing.py       # writing_agent
 │   ├── polish.py        # polish_agent
-│   └── general.py       # general_agent
+│   ├── general.py       # general_agent
+│   └── arxiv.py         # arxiv_agent
 ├── rag/
 │   ├── ingest.py        # 文档摄入（解析+分块+向量化）
 │   └── retriever.py     # RAG 检索
@@ -109,3 +113,4 @@ pytest tests/ -v
 - **LangChain (OpenAI/Chroma/Text-Splitters)** — LLM 集成与 RAG
 - **ChromaDB** — 向量数据库
 - **PyMuPDF** — PDF 解析
+- **arxiv** — arXiv 论文搜索与下载

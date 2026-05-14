@@ -130,3 +130,43 @@ def test_graph_routes_general_flow(mock_llm_cls):
         "user_preferences": {},
     })
     assert "注意力" in result["output"]
+
+
+@patch("agents.arxiv.search_arxiv")
+@patch("graph.ChatOpenAI")
+def test_graph_routes_arxiv_flow(mock_llm_cls, mock_search):
+    from langchain_core.messages import AIMessage
+
+    mock_llm = MagicMock()
+    call_count = [0]
+
+    def invoke_side_effect(msgs):
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return AIMessage(content="arxiv")
+        return AIMessage(content="placeholder")
+
+    mock_llm.invoke.side_effect = invoke_side_effect
+    mock_llm_cls.return_value = mock_llm
+
+    mock_search.return_value = [
+        {
+            "title": "Attention Is All You Need",
+            "authors": "Vaswani et al.",
+            "summary": "A novel architecture...",
+            "pdf_url": "https://arxiv.org/pdf/1706.03762",
+            "entry_id": "http://arxiv.org/abs/1706.03762v5",
+            "published": "2017-06-12",
+        }
+    ]
+
+    graph = build_graph()
+    result = graph.invoke({
+        "query": "帮我找关于attention的论文",
+        "intent": "",
+        "context": [],
+        "messages": [],
+        "output": "",
+        "user_preferences": {"language": "chinese"},
+    })
+    assert "Attention" in result["output"]

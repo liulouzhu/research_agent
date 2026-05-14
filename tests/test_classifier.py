@@ -38,10 +38,18 @@ def test_classify_fallback():
     assert result["intent"] == "general"
 
 
+def test_classify_arxiv():
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value = MagicMock(content="arxiv")
+    result = classify_intent({"query": "帮我找关于transformer的论文", "messages": [], "user_preferences": {}}, mock_llm)
+    assert result["intent"] == "arxiv"
+
+
 def test_route_by_intent():
     from agents.classifier import route_by_intent
     assert route_by_intent({"intent": "qa"}) == "qa_agent"
     assert route_by_intent({"intent": "writing"}) == "writing_agent"
     assert route_by_intent({"intent": "polish"}) == "polish_agent"
     assert route_by_intent({"intent": "general"}) == "general_agent"
+    assert route_by_intent({"intent": "arxiv"}) == "arxiv_agent"
     assert route_by_intent({"intent": "unknown"}) == "general_agent"
