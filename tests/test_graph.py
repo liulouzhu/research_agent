@@ -10,11 +10,14 @@ def test_build_graph_returns_compiled(mock_llm_cls):
     assert graph is not None
 
 
-@patch("rag.retriever.OpenAIEmbeddings")
+@patch("rag.ingest.OpenAIEmbeddings")
 @patch("rag.retriever.Chroma")
 @patch("graph.ChatOpenAI")
-def test_graph_routes_qa_flow(mock_llm_cls, mock_chroma_cls, mock_emb):
+def test_graph_routes_qa_flow(mock_llm_cls, mock_chroma_cls, mock_emb_cls):
     from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+
+    mock_emb = MagicMock()
+    mock_emb_cls.return_value = mock_emb
 
     mock_llm = MagicMock()
     call_count = [0]
@@ -33,6 +36,9 @@ def test_graph_routes_qa_flow(mock_llm_cls, mock_chroma_cls, mock_emb):
         (MagicMock(page_content="Attention is a neural network technique.", metadata={"source": "paper.pdf", "page": 0}), 0.1),
     ]
     mock_chroma_cls.return_value = mock_vs
+
+    import rag.ingest
+    rag.ingest._default_embeddings = mock_emb
 
     graph = build_graph()
     result = graph.invoke({

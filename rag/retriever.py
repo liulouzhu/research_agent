@@ -1,9 +1,13 @@
+import os
+
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 
+from rag.ingest import get_embeddings
+
 
 def retrieve(query: str, chroma_dir: str = "./chroma_db", top_k: int = 5) -> list[dict]:
-    embeddings = OpenAIEmbeddings()
+    embeddings = get_embeddings()
     vectorstore = Chroma(persist_directory=chroma_dir, embedding_function=embeddings)
     docs_with_scores = vectorstore.similarity_search_with_score(query, k=top_k)
     results = []

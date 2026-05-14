@@ -5,6 +5,16 @@ from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+_default_embeddings = None
+
+
+def get_embeddings() -> OpenAIEmbeddings:
+    global _default_embeddings
+    if _default_embeddings is None:
+        model = os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small")
+        _default_embeddings = OpenAIEmbeddings(model=model)
+    return _default_embeddings
+
 
 def _extract_text(pdf_path: str) -> list[dict]:
     doc = fitz.open(pdf_path)
@@ -39,7 +49,7 @@ def ingest_document(pdf_path: str, chroma_dir: str = "./chroma_db") -> int:
             all_texts.append(chunk)
             all_metadatas.append(page["metadata"])
 
-    embeddings = OpenAIEmbeddings()
+    embeddings = get_embeddings()
     Chroma.from_texts(
         texts=all_texts,
         embedding=embeddings,
