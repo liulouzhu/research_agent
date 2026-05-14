@@ -9,16 +9,17 @@ CLI 输入
   ↓
 意图分类节点 (LLM 零样本分类)
   ↓ conditional edge
-  ├── qa_agent          → RAG 检索 + 问答
-  ├── writing_agent     → 论文写作
-  ├── polish_agent      → 润色修改
-  ├── arxiv_agent       → 搜索/下载 arXiv 论文
-  └── general_agent     → 通用问答
+  ├── qa_agent            → RAG 检索 + 问答
+  ├── writing_agent       → 论文写作
+  ├── polish_agent        → 润色修改
+  ├── arxiv_agent         → 搜索/下载 arXiv 论文
+  ├── innovation_agent    → 双模型创新点生成
+  └── general_agent       → 通用问答
   ↓
 输出到 CLI
 ```
 
-单一 LangGraph StateGraph，扁平结构，5 个 agent 节点通过共享 State 传递数据。
+单一 LangGraph StateGraph，扁平结构，6 个 agent 节点通过共享 State 传递数据。
 
 ## 功能
 
@@ -26,7 +27,8 @@ CLI 输入
 - **论文写作**：根据用户要求生成论文段落、大纲、草稿
 - **润色修改**：对已有文本进行学术润色，支持偏好调整
 - **ArXiv 论文**：搜索 arXiv 论文、下载 PDF 并自动入库到 RAG 知识库
-- **通用问答**：处理不属于以上四类的对话、概念解释、方法建议等
+- **创新点生成**：双模型协作生成研究创新点候选，新颖性分析，评审打分，外部独立评审
+- **通用问答**：处理不属于以上五类的对话、概念解释、方法建议等
 - **意图分类**：自动识别用户意图，路由到对应 agent
 - **多级记忆**：短期对话上下文 + 长期用户偏好持久化
 
@@ -46,6 +48,7 @@ pip install -r requirements.txt
 OPENAI_API_KEY=sk-your-api-key-here
 OPENAI_MODEL=gpt-4o-mini
 OPENAI_BASE_URL=https://api.openai.com/v1
+REVIEWER_MODEL=gpt-4o   # 可选：双模型创新点生成的外部评审模型，不设置则单模型模式
 ```
 
 ## 使用
@@ -86,7 +89,8 @@ research_agent/
 │   ├── writing.py       # writing_agent
 │   ├── polish.py        # polish_agent
 │   ├── general.py       # general_agent
-│   └── arxiv.py         # arxiv_agent
+│   ├── arxiv.py         # arxiv_agent
+│   └── innovation.py    # innovation_agent
 ├── rag/
 │   ├── ingest.py        # 文档摄入（解析+分块+向量化）
 │   └── retriever.py     # RAG 检索
