@@ -4,6 +4,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import END, StateGraph
 
 from agents.classifier import classify_intent, route_by_intent
+from agents.general import general_agent
 from agents.polish import polish_agent
 from agents.qa import qa_agent
 from agents.writing import writing_agent
@@ -34,6 +35,12 @@ def _make_polish_node(llm):
     return node
 
 
+def _make_general_node(llm):
+    def node(state: State) -> dict:
+        return general_agent(state, llm)
+    return node
+
+
 def build_graph(chroma_dir: str = "./chroma_db", model: str = None):
     if model is None:
         model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
@@ -45,6 +52,7 @@ def build_graph(chroma_dir: str = "./chroma_db", model: str = None):
     graph.add_node("qa_agent", _make_qa_node(llm, chroma_dir))
     graph.add_node("writing_agent", _make_writing_node(llm))
     graph.add_node("polish_agent", _make_polish_node(llm))
+    graph.add_node("general_agent", _make_general_node(llm))
 
     graph.set_entry_point("classifier")
 
@@ -52,10 +60,12 @@ def build_graph(chroma_dir: str = "./chroma_db", model: str = None):
         "qa_agent": "qa_agent",
         "writing_agent": "writing_agent",
         "polish_agent": "polish_agent",
+        "general_agent": "general_agent",
     })
 
     graph.add_edge("qa_agent", END)
     graph.add_edge("writing_agent", END)
     graph.add_edge("polish_agent", END)
+    graph.add_edge("general_agent", END)
 
     return graph.compile()

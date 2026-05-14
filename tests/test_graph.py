@@ -102,3 +102,31 @@ def test_graph_routes_polish_flow(mock_llm_cls):
     })
     assert result["output"] is not None
     assert len(result["output"]) > 0
+
+
+@patch("graph.ChatOpenAI")
+def test_graph_routes_general_flow(mock_llm_cls):
+    from langchain_core.messages import AIMessage
+
+    mock_llm = MagicMock()
+    call_count = [0]
+
+    def invoke_side_effect(msgs):
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return AIMessage(content="general")
+        return AIMessage(content="注意力机制是一种让模型关注输入重要部分的方法。")
+
+    mock_llm.invoke.side_effect = invoke_side_effect
+    mock_llm_cls.return_value = mock_llm
+
+    graph = build_graph()
+    result = graph.invoke({
+        "query": "科研领域有哪些热门方向",
+        "intent": "",
+        "context": [],
+        "messages": [],
+        "output": "",
+        "user_preferences": {},
+    })
+    assert "注意力" in result["output"]

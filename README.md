@@ -1,6 +1,6 @@
 # Research Agent
 
-基于 LangGraph 的科研助手 CLI 工具，支持意图分类路由、RAG 问答、论文写作、润色修改。
+基于 LangGraph 的科研助手 CLI 工具，支持意图分类路由、RAG 问答、论文写作、润色修改、通用问答。
 
 ## 架构
 
@@ -11,18 +11,20 @@ CLI 输入
   ↓ conditional edge
   ├── qa_agent          → RAG 检索 + 问答
   ├── writing_agent     → 论文写作
-  └── polish_agent      → 润色修改
+  ├── polish_agent      → 润色修改
+  └── general_agent     → 通用问答
   ↓
 输出到 CLI
 ```
 
-单一 LangGraph StateGraph，扁平结构，3 个 agent 节点通过共享 State 传递数据。
+单一 LangGraph StateGraph，扁平结构，4 个 agent 节点通过共享 State 传递数据。
 
 ## 功能
 
 - **QA 问答**：上传 PDF 文档后，基于内容检索回答问题，标注引用来源
 - **论文写作**：根据用户要求生成论文段落、大纲、草稿
 - **润色修改**：对已有文本进行学术润色，支持偏好调整
+- **通用问答**：处理不属于以上三类的对话、概念解释、方法建议等
 - **意图分类**：自动识别用户意图，路由到对应 agent
 - **多级记忆**：短期对话上下文 + 长期用户偏好持久化
 
@@ -36,8 +38,12 @@ pip install -r requirements.txt
 
 设置 OpenAI API Key：
 
-```bash
-export OPENAI_API_KEY="sk-..."
+复制 `.env.example` 为 `.env`，填入配置：
+
+```
+OPENAI_API_KEY=sk-your-api-key-here
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
 ## 使用
@@ -75,7 +81,8 @@ research_agent/
 │   ├── classifier.py    # 意图分类节点
 │   ├── qa.py            # qa_agent
 │   ├── writing.py       # writing_agent
-│   └── polish.py        # polish_agent
+│   ├── polish.py        # polish_agent
+│   └── general.py       # general_agent
 ├── rag/
 │   ├── ingest.py        # 文档摄入（解析+分块+向量化）
 │   └── retriever.py     # RAG 检索

@@ -24,11 +24,18 @@ def test_classify_polish():
     assert result["intent"] == "polish"
 
 
+def test_classify_general():
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value = MagicMock(content="general")
+    result = classify_intent({"query": "你好，科研领域有哪些热门方向", "messages": [], "user_preferences": {}}, mock_llm)
+    assert result["intent"] == "general"
+
+
 def test_classify_fallback():
     mock_llm = MagicMock()
     mock_llm.invoke.return_value = MagicMock(content="something_unknown")
     result = classify_intent({"query": "hello", "messages": [], "user_preferences": {}}, mock_llm)
-    assert result["intent"] == "qa"
+    assert result["intent"] == "general"
 
 
 def test_route_by_intent():
@@ -36,4 +43,5 @@ def test_route_by_intent():
     assert route_by_intent({"intent": "qa"}) == "qa_agent"
     assert route_by_intent({"intent": "writing"}) == "writing_agent"
     assert route_by_intent({"intent": "polish"}) == "polish_agent"
-    assert route_by_intent({"intent": "unknown"}) == "qa_agent"
+    assert route_by_intent({"intent": "general"}) == "general_agent"
+    assert route_by_intent({"intent": "unknown"}) == "general_agent"
